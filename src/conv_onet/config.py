@@ -1,20 +1,10 @@
-import torch
-import torch.distributions as dist
-from torch import nn
-import os
-from src.encoder import encoder_dict
-from src.conv_onet import models, training
-from src.conv_onet import generation
+from src.encoder import pointnet
+from src.conv_onet import models, generation, decoder
 from src import data
-from src import config
 from torchvision import transforms
-import numpy as np
 
 def get_model(cfg, device=None, dataset=None, **kwargs):
-    '''
-    '''
-    decoder = cfg['model']['decoder']  # simple_local
-    encoder = cfg['model']['encoder']  # pointnet_local_pool
+
     dim = cfg['data']['dim']           # 3
     c_dim = cfg['model']['c_dim']      # 32
     decoder_kwargs = cfg['model']['decoder_kwargs']
@@ -22,32 +12,25 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     padding = cfg['data']['padding']   # 0.1
     
     # simple_local(3,32,0.1,decoder_kwargs)
-    decoder = models.decoder_dict[decoder](
+    decoderObj = decoder.LocalDecoder(
         dim=dim, c_dim=c_dim, padding=padding,
         **decoder_kwargs
     )
 
     # pointnet_local_pool(3,32,0.1,encoder_kwargs)
-    encoder = encoder_dict[encoder](
+    encoderObj = pointnet.LocalPoolPointnet(
         dim=dim, c_dim=c_dim, padding=padding,
         **encoder_kwargs
     )
 
     model = models.ConvolutionalOccupancyNetwork(
-        decoder, encoder, device=device
+        decoderObj, encoderObj, device=device
     )
 
     return model
 
 
 def get_generator(model, cfg, device, **kwargs):
-    ''' Returns the generator object.
-
-    Args:
-        model (nn.Module): Occupancy Network model
-        cfg (dict): imported yaml config
-        device (device): pytorch device
-    '''
 
     vol_bound = None
     vol_info = None
@@ -69,47 +52,24 @@ def get_generator(model, cfg, device, **kwargs):
     return generator
 
 
-def get_data_fields(mode, cfg):
-    '''
-    mode (str): the mode which is used
-    cfg (dict): imported yaml config
-    '''
-    # 随机采样 2048 个点
-    points_transform = data.SubsamplePoints(cfg['data']['points_subsample'])
-    # pointcloud
-    input_type = cfg['data']['input_type']
+def get_dataset(mode, cfg):
 
+    # data/demo
+    dataset_folder = cfg['data']['path']
+
+    # add inputs
+    transform = transforms.Compose([
+        data.SubsamplePointcloud(cfg['data']['pointcloud_n']),  # 随机采样 3w 个点
+        data.PointcloudNoise(cfg['data']['pointcloud_noise'])   # 增加 0 噪声
+    ])
+    inputs_field = data.PointCloudField(
+        cfg['data']['pointcloud_file'], transform  # 拿到 inputs 和 inputs.normals
+    )
     fields = {}
-    # room9_noroof.ply
-    if cfg['data']['points_file'] is not None:
-        # True
-        if input_type != 'pointcloud_crop':
-            fields['points'] = data.PointsField(  # 拿到 points 与 points.occ
-                cfg['data']['points_file'],
-                transform=points_transform,
-                unpackbits=cfg['data']['points_unpackbits']
-            )
-        else:
-            fields['points'] = data.PatchPointsField(
-                cfg['data']['points_file'],
-                transform=points_transform,
-                unpackbits=cfg['data']['points_unpackbits']
-            )
+    if inputs_field is not None:
+        fields['inputs'] = inputs_field
 
-    # 'test'
-    if mode in ('val', 'test'):
-        # 有用吗？？？
-        points_iou_file = cfg['data']['points_iou_file']
-        if points_iou_file is not None:
-            if input_type == 'pointcloud_crop':
-                fields['points_iou'] = data.PatchPointsField(  # 拿到 points_iou 与 points_iou.occ
-                    points_iou_file,
-                    unpackbits=cfg['data']['points_unpackbits']
-                )
-            else:
-                fields['points_iou'] = data.PointsField(
-                    points_iou_file,
-                    unpackbits=cfg['data']['points_unpackbits']
-                )
+    # dataset
+    dataset = data.Shapes3dDataset(dataset_folder, fields)
 
-    return fields
+    return dataset

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from src.layers import ResnetBlockFC
 from src.common import normalize_3d_coordinate
 
-# 用的是这个
+
 class LocalDecoder(nn.Module):
     ''' Instead of conditioning on global features, on plane/volume local features.
     Args:

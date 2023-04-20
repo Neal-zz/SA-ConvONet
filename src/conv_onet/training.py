@@ -1,25 +1,16 @@
 import os
-from tqdm import trange
 import torch
 from torch.nn import functional as F
-from torch import distributions as dist
-from src.common import (
-     add_key, #compute_iou, make_3d_grid,
-)
 from src.training import BaseTrainer
 import numpy as np
 
 # 用于 optimize
 class Trainer(BaseTrainer):
 
-    def __init__(self, model, optimizer, device=None, input_type='pointcloud',
-                threshold=0.5, eval_sample=False):
+    def __init__(self, model, optimizer, device=None):
         self.model = model
         self.optimizer = optimizer
         self.device = device
-        self.input_type = input_type    # pointcloud
-        self.threshold = threshold      # 0.2
-        self.eval_sample = eval_sample  # false
 
     # sign_agnostic_optim 接口
     def sign_agnostic_optim_step(self, data, state_dict, batch_size=16, npoints1=1024,

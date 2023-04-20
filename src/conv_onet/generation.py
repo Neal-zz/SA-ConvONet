@@ -15,6 +15,7 @@ import open3d as o3d
 
 counter = 0
 
+# 由神经网路的输出，生成 mesh
 class Generator3D(object):
     '''
     Args:

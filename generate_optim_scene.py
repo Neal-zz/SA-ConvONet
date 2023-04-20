@@ -1,35 +1,30 @@
 import torch
 import torch.optim as optim
 import os
-import shutil
-import argparse
+import yaml
 from tqdm import tqdm
-import time, datetime
-from collections import defaultdict
-import pandas as pd
-from src import config
 from src import conv_onet
 from tensorboardX import SummaryWriter
 
 # load config
-cfg = config.load_config('configs/demo_syn_room.yaml')
-
+with open('configs/demo_syn_room.yaml', 'r') as f:
+    cfg = yaml.load(f)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 'cuda'
 generation_dir = cfg['training']['out_dir']  # out
 input_type = cfg['data']['input_type']       # pointcloud
 
 # Dataset
-dataset = config.get_dataset('test', cfg, return_idx=True)
-
-# Model
-model = conv_onet.config.get_model(cfg, device=device, dataset=dataset)
-
-# Generator
-generator = conv_onet.config.get_generator(model, cfg, device=device)
+dataset = conv_onet.config.get_dataset('test', cfg)
 
 # Loader
 test_loader = torch.utils.data.DataLoader(
     dataset, batch_size=1, num_workers=0, shuffle=False)
+
+# Model: models.ConvolutionalOccupancyNetwork
+model = conv_onet.config.get_model(cfg, device=device, dataset=dataset)
+
+# Generator: generation.Generator3D
+generator = conv_onet.config.get_generator(model, cfg, device=device)
 
 # 只有一个 model 所以只循环一次
 for it, data in enumerate(tqdm(test_loader)):
@@ -75,9 +70,7 @@ for it, data in enumerate(tqdm(test_loader)):
     thres_list = cfg['test_optim']['threshold']      # [0.15, 0.2, 0.25] 三个阈值用来判读是否为 surface
     optimizer = optim.Adam(model.parameters(), lr=lr)
     trainer = conv_onet.training.Trainer(
-        model, optimizer, device=device,
-        input_type=input_type, threshold=thres_list[1],
-        eval_sample=cfg['training']['eval_sample'],
+        model, optimizer, device=device
     )
 
     # Generate results before test-time optimization (results of pretrained ConvONet)
@@ -97,9 +90,7 @@ for it, data in enumerate(tqdm(test_loader)):
             for g in optimizer.param_groups:
                 g['lr'] = lr
                 trainer = conv_onet.training.Trainer(
-                    model, optimizer, device=device,
-                    input_type=input_type, threshold=thres_list[1],
-                    eval_sample=cfg['training']['eval_sample'],
+                    model, optimizer, device=device
                 )
             for th in thres_list:
                 generate_mesh_func(iter, th=th, suffix=f"th{th}")

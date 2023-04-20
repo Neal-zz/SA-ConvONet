@@ -1,30 +1,19 @@
 
 from src.data.core import (
-    Shapes3dDataset #, collate_remove_none, worker_init_fn
+    Shapes3dDataset
 )
 from src.data.fields import (
-    PointsField, PointCloudField,
-    IndexField, 
-    # , PatchPointsField , PatchPointCloudField, PartialPointCloudField, 
+    PointCloudField
 )
 from src.data.transforms import (
-    PointcloudNoise, SubsamplePointcloud,
-    SubsamplePoints,
+    PointcloudNoise, SubsamplePointcloud
 )
 __all__ = [
     # Core
     Shapes3dDataset,
-    # collate_remove_none,
-    # worker_init_fn,
     # Fields
-    IndexField,
-    PointsField,
     PointCloudField,
-    # PartialPointCloudField,
-    # PatchPointCloudField,
-    # PatchPointsField,
     # Transforms
     PointcloudNoise,
     SubsamplePointcloud,
-    SubsamplePoints,
 ]

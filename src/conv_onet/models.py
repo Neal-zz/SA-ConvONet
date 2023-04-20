@@ -3,11 +3,6 @@ import torch.nn as nn
 from torch import distributions as dist
 from src.conv_onet import decoder
 
-# Decoder dictionary
-decoder_dict = {
-    'simple_local': decoder.LocalDecoder,
-}
-
 class ConvolutionalOccupancyNetwork(nn.Module):
 
     def __init__(self, decoder, encoder=None, device=None):
@@ -70,12 +65,13 @@ class ConvolutionalOccupancyNetwork(nn.Module):
         return model
 
     
-    #####
+    # 这个函数确实有用
     def train(self, mode=True, freeze_norm=False, freeze_norm_affine=False):
         """
         Override the default train() to freeze the BN parameters
         """
         super().train(mode)
+
         if freeze_norm:
             if self.encoder is not None:
                 for m in self.encoder.modules():

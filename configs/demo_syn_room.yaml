@@ -1,48 +1,34 @@
 data:
+  pointcloud_n: 30000  # 随机采样 3w 个点
   path: /home/neal/projects/SA-ConvONet/data/demo
-  input_type: pointcloud
-  pointcloud_n: 30000  # input points
-  pointcloud_noise: 0  # noise level
-  points_subsample: 2048
   pointcloud_file: pointcloud.npz
-  points_file: points_iou.npz
-  points_iou_file: points_iou.npz
-  dim: 3  # xyz
-  points_unpackbits: true
-  pointcloud_target_n: 1024
-  padding: 0.1
+  padding: 0.1  # 立方体扩展为 +-0.55
+  dim: 3  # input dim
 model:
   encoder_kwargs:
     hidden_dim: 32
     grid_resolution: 64
-    unet3d: True
     unet3d_kwargs:
       num_levels: 4
       f_maps: 32
       in_channels: 32
       out_channels: 32
   decoder_kwargs:
-    sample_mode: bilinear # bilinear / nearest
     hidden_size: 32
-  c_dim: 32 
+  c_dim: 32
 training:
   out_dir: out
-  eval_sample: false
 test:
   model_path: /home/neal/projects/SA-ConvONet/data
   model_file: room_grid64.pt
 generation:
-  refinement_step: 0
-  use_sampling: false
-  resolution_0: 32
+  resolution_0: 32  # 地图分辨率
   upsampling_steps: 2
-  simplify_nfaces: null
-  sliding_window: False  # added for crop generation
 test_optim:
   learning_rate: 0.00003
   decay_rate: 0.3
   n_iter: 720
-  n_step: 300
+  n_step: 100
   batch_size: 6         # 传给 sign_agnostic_optim
   npoints_surf: 1536    # 传给 sign_agnostic_optim
   npoints_nonsurf: 512  # 传给 sign_agnostic_optim

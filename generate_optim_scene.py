@@ -11,7 +11,6 @@ with open('configs/demo_syn_room.yaml', 'r') as f:
     cfg = yaml.load(f)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 'cuda'
 generation_dir = cfg['training']['out_dir']  # out
-input_type = cfg['data']['input_type']       # pointcloud
 
 # Dataset
 dataset = conv_onet.config.get_dataset('test', cfg)
@@ -21,7 +20,7 @@ test_loader = torch.utils.data.DataLoader(
     dataset, batch_size=1, num_workers=0, shuffle=False)
 
 # Model: models.ConvolutionalOccupancyNetwork
-model = conv_onet.config.get_model(cfg, device=device, dataset=dataset)
+model = conv_onet.config.get_model(cfg, device=device)
 
 # Generator: generation.Generator3D
 generator = conv_onet.config.get_generator(model, cfg, device=device)
@@ -48,8 +47,7 @@ for it, data in enumerate(tqdm(test_loader)):
         # Generate
         generator.threshold = th
         model.eval()
-        out = generator.generate_mesh(data)
-        mesh, _ = out
+        mesh = generator.generate_mesh(data)
 
         # Write output
         if not is_final:

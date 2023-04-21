@@ -31,8 +31,7 @@ class Generator3D(object):
             c = self.model.encode_inputs(inputs)
 
         # MISE(32,2,-1.386)
-        mesh_extractor = MISE(
-            self.resolution0, self.upsampling_steps, threshold)
+        mesh_extractor = MISE(self.resolution0, self.upsampling_steps, threshold)
         # （33*33*33，3）从 0 到 128 间距为 4 等距离分布的点云
         points = mesh_extractor.query()
         while points.shape[0] != 0:
@@ -63,19 +62,25 @@ class Generator3D(object):
             pi = pi.unsqueeze(0).to(self.device)
             with torch.no_grad():
                 occ_hat = self.model.decode(pi, c).logits
+                occ_hat = occ_hat.abs()  # 转换到 (0,inf)
             occ_hats.append(occ_hat.squeeze(0).detach().cpu())
         occ_hat = torch.cat(occ_hats, dim=0)
+        # +-inf
         return occ_hat
 
     def extract_mesh(self, occ_hat, c):
         n_x, n_y, n_z = occ_hat.shape  # 129, 129, 129
+        occ_hat = occ_hat * -1.0  # 转换到 (-inf,0)
         box_size = 1 + self.padding    # 1.1
         threshold = np.log(self.threshold) - np.log(1. - self.threshold)  # logits（-1.386）
+        # threshold = np.log(1.-self.threshold) - np.log(self.threshold)
+        threshold = threshold*-1.0
+        
         
         # occ_hat 向外拓展一圈，并设为-1e6
         occ_hat_padded = np.pad(
             occ_hat, 1, 'constant', constant_values=-1e6)
-        # 提取 mesh
+        # 提取 mesh，threshold 以上
         vertices, triangles = libmcubes.marching_cubes(
             occ_hat_padded, threshold)
         # Strange behaviour in libmcubes: vertices are shifted by 0.5

@@ -1,11 +1,10 @@
 import os
 import torch
 from torch.nn import functional as F
-from src.training import BaseTrainer
 import numpy as np
 
 # 用于 optimize
-class Trainer(BaseTrainer):
+class Trainer(object):
 
     def __init__(self, model, optimizer, device=None):
         self.model = model
@@ -13,7 +12,7 @@ class Trainer(BaseTrainer):
         self.device = device
 
     # sign_agnostic_optim 接口
-    def sign_agnostic_optim_step(self, data, state_dict, batch_size=16, npoints1=1024,
+    def sign_agnostic_optim_step(self, data, batch_size=16, npoints1=1024,
         npoints2=1024, sigma=0.1):
 
         self.model.train()
@@ -48,7 +47,7 @@ class Trainer(BaseTrainer):
             # (1,2048,3)
             p = torch.cat([inputs[:, index1, :], inputs_noise[:, index2, :]], dim=1)
             # 0.5 代表是 surface，1 代表不是 surface。
-            occ = torch.cat([torch.ones((1, npoints1), dtype=torch.float32), torch.ones((1, npoints2), dtype=torch.float32)*0.0], dim=1)
+            occ = torch.cat([torch.ones((1, npoints1), dtype=torch.float32)*0.5, torch.ones((1, npoints2), dtype=torch.float32)], dim=1)
             batch_p.append(p)
             batch_occ.append(occ)
         batch_p = torch.cat(batch_p, dim=0).to(device)
@@ -56,7 +55,7 @@ class Trainer(BaseTrainer):
 
         # General points
         logits = self.model.decode(batch_p, c).logits
-        #logits = logits.abs()  # absolute value
+        logits = logits.abs()  # absolute value
         loss_i = F.binary_cross_entropy_with_logits(
             logits, batch_occ, reduction='none')
         loss = loss_i.sum(-1).mean()

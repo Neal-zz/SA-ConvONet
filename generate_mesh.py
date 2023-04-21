@@ -73,35 +73,9 @@ for it, data in enumerate(tqdm(test_loader)):
     trainer = conv_onet.training.Trainer(
         model, optimizer, device=device
     )
-    # 保存模型
-    checkpoint_io = CheckpointIO(cfg['training']['out_dir'], model=model, optimizer=optimizer)
-
+    
     # Generate results before test-time optimization (results of pretrained ConvONet)
-    th = thres_list[1]
-    generate_mesh_func(0, th=th, suffix=f"th{th}")
-
-    # range(0, 720)
-    for iter in range(0, n_iter):
-        # (data, 6, 1536, 512, 0.1)
-        loss = trainer.sign_agnostic_optim_step(data, batch_size, npoints1, npoints2, sigma)
-        
-        logger.add_scalar('test_optim/loss', loss, iter)
-        print('[It %02d] iter_ft=%03d, loss=%.4f' % (it, iter, loss))
-        
-        if (iter + 1) % n_step == 0:
-            lr = lr * lr_decay
-            for g in optimizer.param_groups:
-                g['lr'] = lr
-                trainer = conv_onet.training.Trainer(
-                    model, optimizer, device=device
-                )
-            for th in thres_list:
-                generate_mesh_func(iter, th=th, suffix=f"th{th}")
-            print('Saving checkpoint')
-            checkpoint_io.save('model_%03d.pt' % (iter), epoch_it=0, it=iter,
-                               loss_val_best=loss)
-
     for th in thres_list:
-        generate_mesh_func(n_iter, is_final=True, th=th, suffix=f"th{th}")
+        generate_mesh_func(0, th=th, suffix=f"th{th}")
 
-print('optimization finish.')
+print('finish.')

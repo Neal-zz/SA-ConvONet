@@ -16,11 +16,11 @@ class LocalPoolPointnet(nn.Module):
         self.reso_grid = grid_resolution  # 64
         self.padding = padding            # 0.1
 
-        self.fc_pos = nn.Linear(dim, 2*hidden_dim)
+        self.fc_pos = nn.Linear(dim, 2*hidden_dim)  # 3, 2*32
         self.blocks = nn.ModuleList([
-            ResnetBlockFC(2*hidden_dim, hidden_dim) for i in range(n_blocks)
+            ResnetBlockFC(2*hidden_dim, hidden_dim) for i in range(n_blocks)  # range(5)
         ])
-        self.fc_c = nn.Linear(hidden_dim, c_dim)
+        self.fc_c = nn.Linear(hidden_dim, c_dim)  # 32->32
         self.actvn = nn.ReLU()
         self.unet3d = UNet3D(**unet3d_kwargs)
 
@@ -30,9 +30,9 @@ class LocalPoolPointnet(nn.Module):
         # scatter grid features from points
         fea_grid = c.new_zeros(p.size(0), self.c_dim, self.reso_grid**3)
         c = c.permute(0, 2, 1)
-        fea_grid = scatter_mean(c, index, out=fea_grid) # B x C x reso^3
-        fea_grid = fea_grid.reshape(p.size(0), self.c_dim, self.reso_grid, self.reso_grid, self.reso_grid) # sparce matrix (B x 512 x reso x reso)
-        fea_grid = self.unet3d(fea_grid)
+        fea_grid = scatter_mean(c, index, out=fea_grid)
+        fea_grid = fea_grid.reshape(p.size(0), self.c_dim, self.reso_grid, self.reso_grid, self.reso_grid)
+        fea_grid = self.unet3d(fea_grid)  # B,32,64,64,64 -> 
         return fea_grid
 
     def pool_local(self, xy, index, c):
@@ -57,13 +57,13 @@ class LocalPoolPointnet(nn.Module):
         index = {}
         index['grid'] = coordinate2index(coord['grid'], self.reso_grid)
         
-        net = self.fc_pos(p)
-        net = self.blocks[0](net)
+        net = self.fc_pos(p)       # 3->2*32
+        net = self.blocks[0](net)  # 2*32->32
         for block in self.blocks[1:]:
             pooled = self.pool_local(coord, index, net)
-            net = torch.cat([net, pooled], dim=2)
-            net = block(net)
-        c = self.fc_c(net)
+            net = torch.cat([net, pooled], dim=2)  # 32->2*32
+            net = block(net)  # 2*32->32
+        c = self.fc_c(net)  # 32->32
 
         fea = {}
         fea['grid'] = self.generate_grid_features(p, c)

@@ -3,7 +3,6 @@ import torch
 from torch.nn import functional as F
 import numpy as np
 
-# 用于 optimize
 class Trainer(object):
 
     def __init__(self, model, optimizer, device=None):
@@ -29,6 +28,7 @@ class Trainer(object):
 
         device = self.device
         inputs = data.get('inputs')  # (1,3w,3)
+        # 6, 1536, 512
         batch_size, npoints1, npoints2 = int(batch_size), int(npoints1), int(npoints2)
 
         # (6,3w,3) 将 inputs 复制六次，用于 encode
@@ -39,11 +39,12 @@ class Trainer(object):
         batch_p = []
         batch_occ = []
         for i in range(batch_size):
+            # sigam = 0.1
             inputs_noise = sigma * np.random.normal(0, 1.0, size=inputs.cpu().numpy().shape)
             inputs_noise = torch.from_numpy(inputs_noise).type(torch.FloatTensor)
             inputs_noise = inputs + inputs_noise
-            index1 = np.random.randint(inputs.size(1), size=npoints1)  # 生成 1536 个可重复的 index
-            index2 = np.random.randint(inputs.size(1), size=npoints2)  # 生成 512 个可重复的 index
+            index1 = np.random.choice(inputs.size(1), npoints1, replace=False)  # 挑选 1536 个的 index
+            index2 = np.random.choice(inputs.size(1), npoints2, replace=False)  # 挑选 512 个的 index
             # (1,2048,3)
             p = torch.cat([inputs[:, index1, :], inputs_noise[:, index2, :]], dim=1)
             # 0.5 代表是 surface，1 代表不是 surface。

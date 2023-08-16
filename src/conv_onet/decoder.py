@@ -8,14 +8,14 @@ class LocalDecoder(nn.Module):
 
     def __init__(self, dim=3, c_dim=32, hidden_size=32, n_blocks=5, padding=0.1):
         super().__init__()
-        self.c_dim = c_dim              # 32
-        self.n_blocks = n_blocks        # 5
-        self.padding = padding          # 0.1
+        self.c_dim = c_dim        # 32
+        self.n_blocks = n_blocks  # 5
+        self.padding = padding    # 0.1
 
         self.fc_c = nn.ModuleList([
             nn.Linear(c_dim, hidden_size) for i in range(n_blocks)
         ])
-        self.fc_p = nn.Linear(dim, hidden_size)
+        self.fc_p = nn.Linear(dim, hidden_size)  # 3->32
         self.blocks = nn.ModuleList([
             ResnetBlockFC(hidden_size) for i in range(n_blocks)
         ])
@@ -33,16 +33,16 @@ class LocalDecoder(nn.Module):
 
 
     def forward(self, p, c_plane):
-        # 获取特征向量
+        # 三线形插值获取特征向量
         c = self.sample_grid_feature(p, c_plane['grid'])
         c = c.transpose(1, 2)
 
-        p = p.float()  # xyz
-        net = self.fc_p(p)
+        p = p.float()       # xyz
+        net = self.fc_p(p)  # 3->32
 
         for i in range(self.n_blocks):
-            net = net + self.fc_c[i](c)
-            net = self.blocks[i](net)
+            net = net + self.fc_c[i](c)  # 32
+            net = self.blocks[i](net)    # 32->32
 
         out = self.fc_out(self.actvn(net))
         out = out.squeeze(-1)

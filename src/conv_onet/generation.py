@@ -72,10 +72,8 @@ class Generator3D(object):
         n_x, n_y, n_z = occ_hat.shape  # 129, 129, 129
         occ_hat = occ_hat * -1.0  # 转换到 (-inf,0)
         box_size = 1 + self.padding    # 1.1
-        threshold = np.log(self.threshold) - np.log(1. - self.threshold)  # logits（-1.386）
-        # threshold = np.log(1.-self.threshold) - np.log(self.threshold)
+        threshold = np.log(self.threshold) - np.log(1. - self.threshold)  # logits（0.847）
         threshold = threshold*-1.0
-        
         
         # occ_hat 向外拓展一圈，并设为-1e6
         occ_hat_padded = np.pad(
@@ -85,7 +83,7 @@ class Generator3D(object):
             occ_hat_padded, threshold)
         # Strange behaviour in libmcubes: vertices are shifted by 0.5
         vertices -= 0.5
-        # # Undo padding
+        # Undo padding
         vertices -= 1
         # Normalize to bounding box
         vertices /= np.array([n_x-1, n_y-1, n_z-1])

@@ -26,6 +26,6 @@ class ConvolutionalOccupancyNetwork(nn.Module):
 
     def decode(self, p, c, **kwargs):
         logits = self.decoder(p, c, **kwargs)
-        p_r = dist.Bernoulli(logits=logits)
+        p_r = dist.Bernoulli(logits=logits)  # 这是一种采样方法，好像没用？
         return p_r
 
